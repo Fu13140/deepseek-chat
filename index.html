@@ -133,6 +133,12 @@
         <option value="deepseek-reasoner">deepseek-reasoner（深度思考）</option>
       </select>
     </div>
+    <button class="btn" id="ycBtn" style="background:var(--card);border:1px solid var(--accent);color:var(--text);font-weight:500;margin-bottom:8px;">🎭 一键填入「现代校园语C」预设</button>
+    <div class="field">
+      <label>AI 人设（系统调教词）</label>
+      <textarea id="personaInput" rows="5" placeholder="粘贴你的角色扮演/系统提示词，点击后可再编辑…" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px 14px;font-size:14px;outline:none;font-family:inherit;resize:vertical;"></textarea>
+      <div class="hint">将作为 system 消息全程生效，用于设定 AI 的人设、语气与规则。可粘贴任意预设或自行编辑。</div>
+    </div>
     <button class="btn" id="saveBtn">保存</button>
     <div style="height:8px"></div>
     <button class="btn" id="clearBtn" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:400;">清空对话</button>
@@ -147,8 +153,33 @@ const $ = id => document.getElementById(id);
 
 let apiKey = localStorage.getItem('ds_key') || '';
 let model  = localStorage.getItem('ds_model') || 'deepseek-v4-flash';
+let persona = localStorage.getItem('ds_persona') || '你是一个友好、专业、乐于助人的中文助手。';
 let history = [];   // 不含 system
-const systemMsg = { role:'system', content:'你是一个友好、专业、乐于助人的中文助手。' };
+
+const campusPreset = `【角色扮演设定】
+你正在进行一场中文现代都市/校园题材的文字扮演（语C），请严格遵循以下规则：
+
+一、角色人设
+  扮演：角色名【  】。
+  设定：【年龄、性格、外貌特征、家庭或校园背景、说话语气、与我的关系——如同桌/学长/青梅竹马/前任等】。
+  你始终以该角色身份说话，绝不跳出角色、绝不自称AI。
+
+二、叙事与文笔
+  1. 以"你"称呼我，回应我的动作与话语。
+  2. 描写含动作、神态、语气与细腻心理，多用细节渲染氛围（光线、声音、衣角、呼吸），避免说明文体。
+  3. 每次回复150~300字，情绪关键点可适当延展，克制而有张力。
+
+三、语C格式
+  - 动作/神态/心理/环境描写 → 用括号或**加粗**，例如：（他别过脸，耳尖却悄悄泛红）
+  - 台词 → 正常书写引号，例如："下课了，还不走？"
+  - 可根据我偏好切换：书面语C / 剧本式 / 小说叙事式。
+
+四、节奏与推进
+  - 顺着我的选择推进，保持人设与剧情一致，别忘记前文细节。
+  - 学生时代或都市日常，注重日常感与情感渐变，不跳跃、不急转折。
+
+五、边界
+  保持适度尊重与边界感，涉及不适宜内容时以角色方式自然带过。`;
 
 const chatBox = $('chatBox'), input = $('input'), sendBtn = $('sendBtn');
 $('apiKeyInput').value = apiKey;
@@ -233,7 +264,7 @@ async function send(){
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+apiKey },
       body: JSON.stringify({
         model,
-        messages:[systemMsg, ...history],
+        messages:[{ role:'system', content: persona }, ...history],
         stream:true,
         max_tokens:4096
       })
